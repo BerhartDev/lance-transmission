@@ -1,279 +1,199 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0, user-scalable=no" />
-  <title>Overlay • Odds + QR</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SUPERBET Odds Bar</title>
 
-  <style>
-    :root{
-      --red:#E31B23;
-      --red2:#FF2A35;
-      --red3:#B30E15;
-      --black:#0B0D12;
+<style>
+:root{
+  --red:#E31B23;
+  --redDark:#B31319;
+  --white:#FFFFFF;
+  --softWhite:rgba(255,255,255,.85);
+}
 
-      /* layout */
-      --footerH: 140px;
-      --pad: 10px;
+*{ box-sizing:border-box; }
 
-      /* aside QR */
-      --rightW: 320px;
+html,body{
+  margin:0;
+  padding:0;
+  width:100%;
+  height:100%;
+  background:transparent; /* overlay */
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
 
-      /* quadrado */
-      --radius: 6px;
-      --radius2: 4px;
+/* BARRA VERMELHA */
+.odds-bar{
+  position:fixed;
+  bottom:0;
+  left:0;
+  width:100%;
+  height:60px;
+  background: linear-gradient(90deg, var(--red), var(--redDark));
+  display:flex;
+  align-items:center;
+  box-shadow: 0 -4px 12px rgba(0,0,0,.25);
+}
 
-      --shadow: 0 14px 30px rgba(0,0,0,.18);
-    }
+/* CONTAINER */
+.odds-container{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 40px;
+  gap:40px;
+}
 
-    *{ box-sizing:border-box; }
+/* LOGO */
+.brand{
+  display:flex;
+  align-items:center;
+  min-width:200px;
+padding-left: 500px;
+}
 
-    html, body{
-      width:1920px;
-      height:1080px;
-      margin:0;
-      background:transparent !important; /* troque para transparent no vMix se precisar */
-      overflow:hidden;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: geometricPrecision;
-    }
+.brand img{
+  height:130px;
+  width:auto;
+  display:block;
+  filter: brightness(0) invert(1); /* deixa logo branca */
+}
 
-    .stage{
-      width:1920px;
-      height:1080px;
-      position:relative;
-      background: transparent;
-    }
+/* ODDS */
+.odds{
+  flex:1;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:40px;
+padding-right: 500px;
+}
 
-    /* ASIDE FIXO NA DIREITA (QR) */
-    .rightRail{
-      position:absolute;
-      right: 20px;
-      bottom: 20px;
-      width: var(--rightW);
-      display:flex;
-      justify-content:flex-end;
-      align-items:flex-end;
-      background: transparent;
-    }
+.odd-item{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  position:relative;
+  padding-left:16px;
+}
 
-    .qrCard{
-      width: 100%;
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(14,18,26,.92), rgba(17,24,39,.92));
-      border: 1px solid rgba(0,0,0,.18);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-    }
+/* barrinha branca lateral */
+.odd-item::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:10px;
+  bottom:10px;
+  width:4px;
+  background:var(--white);
+  border-radius:2px;
+  opacity:.9;
+}
 
-    .qrHeader{
-      padding: 12px 14px;
-      background: linear-gradient(90deg, rgba(227,27,35,.98), rgba(255,42,53,.75));
-      border-bottom: 1px solid rgba(255,255,255,.14);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .qrHeader .brand{
-      font-weight:950;
-      letter-spacing:.06em;
-      font-size:22px;
-      text-transform:uppercase;
-      filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
-      color:#fff;
-      white-space:nowrap;
-    }
+/* empate com barra mais suave */
+.odd-item.draw::before{
+  opacity:.6;
+}
 
-    .qrBody{
-      padding: 10px 14px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
+.odd-value{
+  font-size:22px;
+  font-weight:900;
+  color:var(--white);
+  min-width:60px;
+  letter-spacing:.02em;
+}
 
-    .qrWrap{
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      border-radius: var(--radius2);
-      background: rgba(0,0,0,.22);
-      border: 1px solid rgba(255,255,255,.14);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-    }
-    .qrWrap img{
-      width: 92%;
-      height: 92%;
-      object-fit: contain;
-      image-rendering: pixelated;
-    }
+.odd-meta{
+  display:flex;
+  flex-direction:column;
+  line-height:1.05;
+}
 
-    /* FOOTER ODDS (SEM ESPAÇO MORTO À DIREITA) */
-    .footer{
-      position:absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 20px;
-      height: var(--footerH);
-      display:flex;
-      align-items:stretch;
-      gap: 16px;
-      padding: 0;
-      background: transparent;
-    }
+.odd-team{
+  font-size:15px;
+  font-weight:800;
+  color:var(--white);
+ letter-spacing: 1px;
+}
 
-    .pick{
-      width: 320px; /* mantém estável e evita “quebrar” */
-      border-radius: var(--radius);
-      background: rgba(255,255,255,.96);
-      border: 1px solid rgba(0,0,0,.14);
-      box-shadow: var(--shadow);
-      position:relative;
-      overflow:hidden;
-      padding: 14px 14px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap: 12px;
-      color: #111;
-    }
+.odd-label{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  color:var(--softWhite);
+  font-weight:700;
+}
 
-    .pick::before{
-      content:"";
-      position:absolute;
-      left:0; top:0; bottom:0;
-      width: 10px;
-      background: linear-gradient(180deg, var(--red2), var(--red3));
-      opacity: .98;
-    }
-
-    .pick::after{
-      content:"";
-      position:absolute;
-      right:-70px; top:-70px;
-      width: 180px; height: 180px;
-      background: linear-gradient(135deg, rgba(227,27,35,.14), rgba(227,27,35,0) 65%);
-      transform: rotate(10deg);
-      opacity: .9;
-    }
-
-    .pick--draw::before{
-      background: linear-gradient(180deg, rgba(11,13,18,.95), rgba(11,13,18,.55));
-    }
-
-    .odds{
-      position:relative;
-      font-size: 44px;
-      font-weight: 950;
-      letter-spacing:.02em;
-      line-height:1;
-      white-space:nowrap;
-      flex-shrink:0;
-      min-width: 110px;
-      color: var(--black);
-    }
-
-    .meta{
-      position:relative;
-      min-width:0;
-      display:flex;
-      flex-direction:column;
-      gap: 6px;
-      line-height:1.05;
-    }
-
-    .team{
-      font-size: 24px;
-      font-weight: 950;
-      letter-spacing:.01em;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      max-width: 170px;
-      color: var(--black);
-    }
-
-    .label{
-      font-size: 11px;
-      letter-spacing:.16em;
-      text-transform: uppercase;
-      font-weight: 950;
-      white-space:nowrap;
-      color: rgba(11,13,18,.70);
-    }
-  </style>
+/* divisores */
+.sep{
+  width:1px;
+  height:26px;
+  background:rgba(255,255,255,.25);
+}
+</style>
 </head>
 
 <body>
-  <div class="stage">
 
-    <!-- QR FIXO (canto inferior direito) -->
-    <aside class="rightRail">
-      <div class="qrCard">
-        <div class="qrHeader">
-          <div class="brand">SUPERBET</div>
-        </div>
-        <div class="qrBody">
-          <div class="qrWrap">
-            <img
-              alt="QR Code"
-              src="https://api.qrserver.com/v1/create-qr-code/?size=520x520&data=https%3A%2F%2Fsuperbet.com%2F"
-            />
-          </div>
-        </div>
-      </div>
-    </aside>
+<div class="odds-bar">
+  <div class="odds-container">
 
-    <!-- ODDS (centrado embaixo) -->
-    <footer class="footer">
-      <div class="pick">
-        <div class="odds" id="oddsHome">1.85</div>
-        <div class="meta">
-          <div class="team" id="teamHome">Flamengo</div>
-          <div class="label">Casa</div>
+    <!-- LOGO -->
+    <div class="brand">
+      <img src="superbet-logo.svg" alt="SUPERBET">
+    </div>
+
+    <!-- ODDS -->
+    <div class="odds">
+
+      <div class="odd-item">
+        <div class="odd-value" id="oddsHome">1.85</div>
+        <div class="odd-meta">
+          <div class="odd-team" id="teamHome">Flamengo</div>
+          <div class="odd-label">Casa</div>
         </div>
       </div>
 
-      <div class="pick pick--draw">
-        <div class="odds" id="oddsDraw">3.40</div>
-        <div class="meta">
-          <div class="team" id="teamDraw">X</div>
-          <div class="label">Empate</div>
+      <div class="sep"></div>
+
+      <div class="odd-item draw">
+        <div class="odd-value" id="oddsDraw">3.40</div>
+        <div class="odd-meta">
+          <div class="odd-team">X</div>
+          <div class="odd-label">Empate</div>
         </div>
       </div>
 
-      <div class="pick">
-        <div class="odds" id="oddsAway">4.10</div>
-        <div class="meta">
-          <div class="team" id="teamAway">Vasco</div>
-          <div class="label">Fora</div>
+      <div class="sep"></div>
+
+      <div class="odd-item">
+        <div class="odd-value" id="oddsAway">4.10</div>
+        <div class="odd-meta">
+          <div class="odd-team" id="teamAway">Vasco</div>
+          <div class="odd-label">Fora</div>
         </div>
       </div>
-    </footer>
+
+    </div>
 
   </div>
+</div>
 
-  <script>
-    // setOverlay({ home:"Botafogo", away:"Fluminense", oddsHome:"2.05", oddsDraw:"3.10", oddsAway:"3.60", qrUrl:"https://..." })
-    window.setOverlay = function(p){
-      if(!p || typeof p !== 'object') return;
+<script>
+window.setOverlay = function(p){
+  if(!p) return;
 
-      if(p.home) document.getElementById('teamHome').textContent = p.home;
-      if(p.away) document.getElementById('teamAway').textContent = p.away;
+  if(p.home) document.getElementById('teamHome').textContent = p.home;
+  if(p.away) document.getElementById('teamAway').textContent = p.away;
 
-      if(p.oddsHome) document.getElementById('oddsHome').textContent = p.oddsHome;
-      if(p.oddsDraw) document.getElementById('oddsDraw').textContent = p.oddsDraw;
-      if(p.oddsAway) document.getElementById('oddsAway').textContent = p.oddsAway;
+  if(p.oddsHome) document.getElementById('oddsHome').textContent = p.oddsHome;
+  if(p.oddsDraw) document.getElementById('oddsDraw').textContent = p.oddsDraw;
+  if(p.oddsAway) document.getElementById('oddsAway').textContent = p.oddsAway;
+};
+</script>
 
-      if(p.qrUrl){
-        const img = document.querySelector('.qrWrap img');
-        if(img) img.src = p.qrUrl;
-      }
-    }
-  </script>
 </body>
 </html>
