@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0, user-scalable=no" />
+    <title>SUPERBET • Overlay Odds + QR</title>
+    <style>
+        :root {
+            --bg0: #07080B;
+            --bg1: #0B0D12;
+            --panel: #0E121A;
+            --panel2: #111827;
+
+            --red: #E31B23;
+            --red2: #FF2A35;
+            --red3: #B30E15;
+
+            --text: #FFFFFF;
+            --muted: rgba(255, 255, 255, .72);
+            --line: rgba(255, 255, 255, .12);
+
+            /* mais quadrado */
+            --radius: 6px;
+            --radius2: 4px;
+
+            --shadow: 0 18px 40px rgba(0, 0, 0, .55);
+
+            --topH: 86px;
+            --footerH: 100px;
+
+            /* >>> para aumentar o vídeo: estreitar a coluna do QR */
+            --rightW: 250px;
+            /* antes 380px */
+            --pad: 8px;
+            /* um pouco menor para liberar área */
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 1920px;
+            height: 1080px;
+            margin: 0;
+            background: transparent;
+            overflow: hidden;
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: geometricPrecision;
+        }
+
+        .stage {
+            width: 1920px;
+            height: 1080px;
+            position: relative;
+            color: var(--text);
+            background:
+                linear-gradient(180deg, rgba(7, 8, 11, .95), rgba(11, 13, 18, .95)),
+                radial-gradient(1000px 600px at 15% 10%, rgba(227, 27, 35, .22), transparent 60%),
+                radial-gradient(900px 600px at 85% 25%, rgba(255, 42, 53, .12), transparent 62%);
+        }
+
+        /* TOP BAR */
+        /* .topbar{
+      position:absolute;
+      left:0; right:0; top:0;
+      height:var(--topH);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 14px var(--pad);
+      background:
+        linear-gradient(90deg, rgba(227,27,35,.95) 0%, rgba(227,27,35,.75) 55%, rgba(11,13,18,.65) 100%);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    } */
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .brandLogo {
+            height: 38px;
+            width: auto;
+            display: block;
+            filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .35));
+        }
+
+        .brandMeta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            line-height: 1.1;
+            min-width: 0;
+        }
+
+        .brandMeta .t1 {
+            font-weight: 900;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            font-size: 12px;
+            opacity: .92;
+        }
+
+        .brandMeta .t2 {
+            font-weight: 900;
+            font-size: 18px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 1040px;
+        }
+
+        .topRight {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .pill {
+            padding: 10px 12px;
+            border-radius: var(--radius2);
+            background: rgba(0, 0, 0, .30);
+            border: 1px solid rgba(255, 255, 255, .14);
+            font-size: 12px;
+            letter-spacing: .10em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, .92);
+            white-space: nowrap;
+        }
+
+        /* MAIN */
+        .content {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: var(--footerH);
+            display: flex;
+        }
+
+        .videoSlot {
+            flex: 1;
+            padding: var(--pad);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .videoFrame {
+            width: 100%;
+            height: 100%;
+            border-radius: var(--radius);
+            /* background:
+                linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02));
+            border: 1px solid rgba(255, 255, 255, .12);
+            box-shadow: var(--shadow); */
+            position: relative;
+            overflow: hidden;
+        }
+
+        .videoFrame::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(120deg, rgba(227, 27, 35, .22) 0%, rgba(227, 27, 35, 0) 42%),
+                radial-gradient(900px 520px at 28% 20%, rgba(255, 42, 53, .18), transparent 60%),
+                radial-gradient(700px 420px at 75% 75%, rgba(227, 27, 35, .10), transparent 62%);
+            pointer-events: none;
+        }
+
+        .videoFrame::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 10px;
+            opacity: .95;
+            pointer-events: none;
+        }
+
+        .videoLabel {
+            position: absolute;
+            left: 18px;
+            top: 16px;
+            padding: 10px 12px;
+            border-radius: var(--radius2);
+            background: rgba(0, 0, 0, .38);
+            border: 1px solid rgba(255, 255, 255, .14);
+            font-size: 12px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, .88);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: var(--red);
+            box-shadow: 0 0 0 4px rgba(227, 27, 35, .22);
+        }
+
+        /* RIGHT RAIL (QR) — mais estreito pra sobrar vídeo */
+        .rightRail {
+            width: var(--rightW);
+            padding: var(--pad);
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+        }
+
+        .qrCard {
+            width: 100%;
+            border-radius: var(--radius);
+            background:
+                linear-gradient(180deg, rgba(14, 18, 26, .92), rgba(17, 24, 39, .92));
+            border: 1px solid rgba(255, 255, 255, .12);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .qrHeader {
+            padding: 12px 14px;
+            background: linear-gradient(90deg, rgba(227, 27, 35, .98), rgba(255, 42, 53, .75));
+            border-bottom: 1px solid rgba(255, 255, 255, .14);
+        }
+
+        .qrHeader .h1 {
+            font-weight: 900;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            font-size: 12px;
+            opacity: .95;
+        }
+
+        .qrHeader .h2 {
+            font-weight: 900;
+            font-size: 16px;
+            margin-top: 6px;
+            line-height: 1.05;
+        }
+
+        .qrBody {
+            padding: 8px;
+        }
+
+        .qrWrap {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: var(--radius2);
+            background: rgba(0, 0, 0, .22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .qrWrap img {
+            width: 92%;
+            height: 92%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .qrFooter {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, .10);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 9px;
+            border-radius: var(--radius2);
+            background: rgba(227, 27, 35, .14);
+            border: 1px solid rgba(227, 27, 35, .35);
+            color: rgba(255, 255, 255, .92);
+            font-weight: 900;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        /* FOOTER */
+        .footer {
+            position: absolute;
+            left: 500px;
+            right: 0;
+            bottom: 0;
+            height: var(--footerH);
+            padding: 16px var(--pad);
+            background: linear-gradient(180deg, rgba(11, 13, 18, 0), rgba(11, 13, 18, .70) 25%, rgba(11, 13, 18, .96));
+            display: flex;
+            align-items: stretch;
+        }
+
+        .footerInner {
+            width: 80%;
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        /* >>> NOVO LAYOUT DO PICK:
+       - odds (esq) grande
+       - ao lado: nome do time (em cima) e label CASA/EMPATE/FORA embaixo
+    */
+        .pick {
+            flex: 1;
+            min-width: 0;
+            border-radius: var(--radius);
+            background:
+                linear-gradient(180deg, rgba(14, 18, 26, .92), rgba(17, 24, 39, .92));
+            border: 1px solid rgba(255, 255, 255, .12);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, .40);
+            position: relative;
+            overflow: hidden;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .pick::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 10px;
+            background: linear-gradient(180deg, var(--red2), var(--red3));
+            opacity: .95;
+        }
+
+        .pick::after {
+            content: "";
+            position: absolute;
+            right: -70px;
+            top: -70px;
+            width: 180px;
+            height: 180px;
+            background: linear-gradient(135deg, rgba(227, 27, 35, .30), rgba(227, 27, 35, 0) 65%);
+            transform: rotate(10deg);
+            opacity: .95;
+        }
+
+        .odds {
+            position: relative;
+            font-size: 44px;
+            font-weight: 950;
+            letter-spacing: .02em;
+            line-height: 1;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: 120px;
+            /* mantém alinhamento */
+            text-align: left;
+        }
+
+        .meta {
+            position: relative;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            line-height: 1.05;
+        }
+
+        .team {
+            font-size: 28px;
+            font-weight: 950;
+            letter-spacing: .01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .label {
+            font-size: 12px;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            font-weight: 950;
+            color: rgba(255, 255, 255, .78);
+            white-space: nowrap;
+        }
+
+        .pick--draw::before {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .20));
+        }
+    </style>
+</head>
+
+<body>
+    <div class="stage">
+        <!-- MAIN -->
+        <div class="content">
+            <div class="videoSlot">
+                <div class="videoFrame" aria-label="Área reservada para vídeo">
+                    <div class="videoLabel"><span class="dot"></span> VIDEO AREA</div>
+                </div>
+            </div>
+
+            <aside class="rightRail">
+                <div class="qrCard">
+                    <div class="qrHeader">
+                        <div class="brand">
+                            <div
+                                style="font-weight:950; letter-spacing:.06em; font-size:22px; text-transform:uppercase; filter:drop-shadow(0 6px 10px rgba(0,0,0,.35));">
+                                SUPERBET
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="qrBody">
+                        <div class="qrWrap">
+                            <img alt="QR Code"
+                                src="https://api.qrserver.com/v1/create-qr-code/?size=520x520&data=https%3A%2F%2Fsuperbet.com%2F" />
+                        </div>
+
+
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <div class="footerInner">
+                <div class="pick">
+                    <div class="odds" id="oddsHome">1.85</div>
+                    <div class="meta">
+                        <div class="team" id="teamHome">Flamengo</div>
+                        <div class="label">Casa</div>
+                    </div>
+                </div>
+
+                <div class="pick pick--draw">
+                    <div class="odds" id="oddsDraw">3.40</div>
+                    <div class="meta">
+                        <div class="team" id="teamDraw">Empate</div>
+                        <div class="label">X</div>
+                    </div>
+                </div>
+
+                <div class="pick">
+                    <div class="odds" id="oddsAway">4.10</div>
+                    <div class="meta">
+                        <div class="team" id="teamAway">Vasco</div>
+                        <div class="label">Fora</div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Relógio
+        (function () {
+            const el = document.getElementById('timestamp');
+            function pad(n) { return String(n).padStart(2, '0'); }
+            function tick() {
+                const d = new Date();
+                el.textContent =
+                    pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() +
+                    ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
+
+        // Atualização via console:
+        // setOverlay({ home:"Botafogo", away:"Fluminense", oddsHome:"2.05", oddsDraw:"3.10", oddsAway:"3.60" })
+        window.setOverlay = function (p) {
+            if (!p || typeof p !== 'object') return;
+
+            if (p.home) document.getElementById('teamHome').textContent = p.home;
+            if (p.away) document.getElementById('teamAway').textContent = p.away;
+
+            if (p.oddsHome) document.getElementById('oddsHome').textContent = p.oddsHome;
+            if (p.oddsDraw) document.getElementById('oddsDraw').textContent = p.oddsDraw;
+            if (p.oddsAway) document.getElementById('oddsAway').textContent = p.oddsAway;
+
+            const home = document.getElementById('teamHome').textContent || '';
+            const away = document.getElementById('teamAway').textContent || '';
+            document.getElementById('matchTitle').textContent = home + ' x ' + away;
+        }
+    </script>
+</body>
+
+</html>
