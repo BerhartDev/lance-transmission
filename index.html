@@ -24,7 +24,6 @@ html,body{
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
-/* BARRA FULL */
 .odds-bar{
   position:fixed;
   bottom:0;
@@ -36,7 +35,6 @@ html,body{
   align-items:center;
 }
 
-/* CONTEÚDO CENTRAL ABSOLUTO */
 .odds-inner{
   position:absolute;
   left:50%;
@@ -44,16 +42,14 @@ html,body{
   display:flex;
   align-items:center;
   gap:60px;
-  white-space:nowrap; /* nunca quebra */
+  white-space:nowrap;
 }
 
-/* LOGO */
 .brand img{
   height:140px;
   filter: brightness(0) invert(1);
 }
 
-/* ODDS */
 .odds{
   display:flex;
   align-items:center;
@@ -115,11 +111,9 @@ html,body{
 
 <body>
 
-<!-- ✅ Pode continuar setando aqui como fallback -->
 <div
   class="odds-bar"
   data-endpoint-base="https://production-superbet-offer-br.freetls.fastly.net/v2/pt-BR/events/"
-  data-event-id="12107483"
 >
   <div class="odds-inner">
 
@@ -173,18 +167,24 @@ html,body{
   const elTeamHome = $("teamHome");
   const elTeamAway = $("teamAway");
 
-  // ✅ NOVO: se vier ?id= na URL, sobrescreve o data-event-id.
-  // Se não vier, fica como estava (baseline).
-  (function applyIdFromUrl(){
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
-    if (!id) return; // sem ?id= -> segue o data-event-id do HTML
-    const clean = String(id).replace(/\D/g, "");
-    if (!clean) return;
-    bar.setAttribute("data-event-id", clean); // dispara MutationObserver também
-  })();
+  // ==========================
+  // 🔒 ID OBRIGATÓRIO VIA ?id=
+  // ==========================
 
-  // pega times do matchName (no seu JSON costuma vir "TIME A·TIME B")
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("id");
+
+  if (!id) {
+    // Não preenche e não roda nada
+    console.warn("Overlay aguardando ?id=");
+    return;
+  }
+
+  const cleanId = String(id).replace(/\D/g, "");
+  if (!cleanId) return;
+
+  bar.dataset.eventId = cleanId;
+
   function splitTeams(matchName){
     const s = String(matchName || "").trim();
     if (!s) return ["—","—"];
@@ -194,11 +194,9 @@ html,body{
     return [s, "—"];
   }
 
-  // ✅ FIX: Extrai 1/X/2 escolhendo 1 único market (evita X errado de outro mercado)
   function extract1X2(item){
     const odds = Array.isArray(item?.odds) ? item.odds : [];
 
-    // tenta pegar mercado "Resultado Final" (ou equivalente)
     const candidates = odds.filter(o => {
       const mn = String(o?.marketName || "").toLowerCase();
       return mn.includes("resultado final") || (mn.includes("resultado") && mn.includes("final"));
@@ -206,7 +204,6 @@ html,body{
 
     const pool = candidates.length ? candidates : odds;
 
-    // agrupa por marketUuid (preferido) ou marketId
     const groups = new Map();
     for (const o of pool) {
       const key = o?.marketUuid ?? o?.marketId;
@@ -215,7 +212,6 @@ html,body{
       groups.get(key).push(o);
     }
 
-    // escolhe um grupo que tenha 1, X e 2
     let list = [];
     for (const g of groups.values()) {
       const names = g.map(x => String(x?.name ?? "").trim().toUpperCase());
@@ -223,7 +219,7 @@ html,body{
 
       const has1 = names.includes("1") || codes.includes("1");
       const has2 = names.includes("2") || codes.includes("2");
-      const hasX = names.includes("X") || codes.includes("0") || codes.includes("X") || names.some(n => n.includes("EMPATE"));
+      const hasX = names.includes("X") || codes.includes("0") || codes.includes("X");
 
       if (has1 && has2 && hasX) { list = g; break; }
     }
@@ -233,14 +229,14 @@ html,body{
     const out = { "1": null, "X": null, "2": null };
 
     for (const o of list) {
-      const label = String(o?.name ?? "").trim().toUpperCase(); // "1","X","2"
+      const label = String(o?.name ?? "").trim().toUpperCase();
       const code  = String(o?.code ?? "").trim().toUpperCase();
       const price = Number(String(o?.price).replace(",", "."));
       if (!Number.isFinite(price)) continue;
 
       if (label === "1" || code === "1") out["1"] = price;
       else if (label === "2" || code === "2") out["2"] = price;
-      else if (label === "X" || code === "0" || code === "X" || label.includes("EMPATE")) out["X"] = price;
+      else if (label === "X" || code === "0" || code === "X") out["X"] = price;
     }
 
     return out;
@@ -254,7 +250,6 @@ html,body{
     try{
       const base = bar.dataset.endpointBase;
       const eventId = bar.dataset.eventId;
-      if (!eventId) return; // segurança extra
 
       const url = base + encodeURIComponent(eventId);
 
@@ -263,52 +258,29 @@ html,body{
 
       const json = await res.json();
       const item = json?.data?.[0];
-      if (!item) throw new Error("Sem data[0]");
+      if (!item) return;
 
       const [home, away] = splitTeams(item.matchName);
       elTeamHome.textContent = (home || "—").toUpperCase();
       elTeamAway.textContent = (away || "—").toUpperCase();
 
-      const phase = String(item?.metadata?.status || "").toUpperCase(); // STARTED / NOT_STARTED / FINISHED
+      const phase = String(item?.metadata?.status || "").toUpperCase();
       const odds = extract1X2(item);
 
-      // Se finalizada: não preencher odds
-      if (phase === "FINISHED") {
-        elOddHome.textContent = "—";
-        elOddDraw.textContent = "—";
-        elOddAway.textContent = "—";
-        return;
-      }
+      if (phase === "FINISHED") return;
 
-      // Ao vivo ou pré-jogo: preenche normalmente (se tiver)
       elOddHome.textContent = formatOdd(odds["1"]);
       elOddDraw.textContent = formatOdd(odds["X"]);
       elOddAway.textContent = formatOdd(odds["2"]);
 
     } catch (err) {
-      // em broadcast: não “pisca”, mantém o último valor renderizado
       console.warn("[odds-bar] update failed:", err);
     }
   }
 
-  // ✅ se você mudar data-event-id no HTML (ou via DevTools), atualiza tudo automaticamente
-  const mo = new MutationObserver((mut) => {
-    for (const m of mut) {
-      if (m.type === "attributes" && m.attributeName === "data-event-id") {
-        // limpa e busca imediatamente
-        elOddHome.textContent = "—";
-        elOddDraw.textContent = "—";
-        elOddAway.textContent = "—";
-        elTeamHome.textContent = "—";
-        elTeamAway.textContent = "—";
-        update();
-      }
-    }
-  });
-  mo.observe(bar, { attributes: true });
-
   update();
   setInterval(update, 1000);
+
 })();
 </script>
 
