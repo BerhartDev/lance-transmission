@@ -158,6 +158,9 @@ html,body{
 
 <script>
 (function(){
+
+  const DEFAULT_TITLE = document.title;
+
   const bar = document.querySelector(".odds-bar");
   const $ = (id) => document.getElementById(id);
 
@@ -168,15 +171,13 @@ html,body{
   const elTeamAway = $("teamAway");
 
   // ==========================
-  // 🔒 ID OBRIGATÓRIO VIA ?id=
+  // ID OBRIGATÓRIO VIA ?id=
   // ==========================
-
   const params = new URLSearchParams(window.location.search);
   const id = params.get("id");
 
   if (!id) {
-    // Não preenche e não roda nada
-    console.warn("Overlay aguardando ?id=");
+    document.title = DEFAULT_TITLE;
     return;
   }
 
@@ -261,8 +262,17 @@ html,body{
       if (!item) return;
 
       const [home, away] = splitTeams(item.matchName);
-      elTeamHome.textContent = (home || "—").toUpperCase();
-      elTeamAway.textContent = (away || "—").toUpperCase();
+
+      const homeUpper = (home || "—").toUpperCase();
+      const awayUpper = (away || "—").toUpperCase();
+
+      elTeamHome.textContent = homeUpper;
+      elTeamAway.textContent = awayUpper;
+
+      // 🔥 AQUI ALTERA O TÍTULO
+      if (homeUpper !== "—" && awayUpper !== "—") {
+        document.title = homeUpper + " X " + awayUpper;
+      }
 
       const phase = String(item?.metadata?.status || "").toUpperCase();
       const odds = extract1X2(item);
