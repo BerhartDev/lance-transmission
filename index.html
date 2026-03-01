@@ -115,7 +115,7 @@ html,body{
 
 <body>
 
-<!-- ✅ Troque só o data-event-id para mudar o jogo -->
+<!-- ✅ Pode continuar setando aqui como fallback -->
 <div
   class="odds-bar"
   data-endpoint-base="https://production-superbet-offer-br.freetls.fastly.net/v2/pt-BR/events/"
@@ -173,6 +173,17 @@ html,body{
   const elTeamHome = $("teamHome");
   const elTeamAway = $("teamAway");
 
+  // ✅ NOVO: se vier ?id= na URL, sobrescreve o data-event-id.
+  // Se não vier, fica como estava (baseline).
+  (function applyIdFromUrl(){
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    if (!id) return; // sem ?id= -> segue o data-event-id do HTML
+    const clean = String(id).replace(/\D/g, "");
+    if (!clean) return;
+    bar.setAttribute("data-event-id", clean); // dispara MutationObserver também
+  })();
+
   // pega times do matchName (no seu JSON costuma vir "TIME A·TIME B")
   function splitTeams(matchName){
     const s = String(matchName || "").trim();
@@ -183,7 +194,7 @@ html,body{
     return [s, "—"];
   }
 
-  // Extrai 1/X/2 do array item.odds, tolerante a variações
+  // ✅ FIX: Extrai 1/X/2 escolhendo 1 único market (evita X errado de outro mercado)
   function extract1X2(item){
     const odds = Array.isArray(item?.odds) ? item.odds : [];
 
@@ -193,20 +204,43 @@ html,body{
       return mn.includes("resultado final") || (mn.includes("resultado") && mn.includes("final"));
     });
 
-    // fallback: se não achou, usa tudo mesmo
-    const list = candidates.length ? candidates : odds;
+    const pool = candidates.length ? candidates : odds;
+
+    // agrupa por marketUuid (preferido) ou marketId
+    const groups = new Map();
+    for (const o of pool) {
+      const key = o?.marketUuid ?? o?.marketId;
+      if (key == null) continue;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(o);
+    }
+
+    // escolhe um grupo que tenha 1, X e 2
+    let list = [];
+    for (const g of groups.values()) {
+      const names = g.map(x => String(x?.name ?? "").trim().toUpperCase());
+      const codes = g.map(x => String(x?.code ?? "").trim().toUpperCase());
+
+      const has1 = names.includes("1") || codes.includes("1");
+      const has2 = names.includes("2") || codes.includes("2");
+      const hasX = names.includes("X") || codes.includes("0") || codes.includes("X") || names.some(n => n.includes("EMPATE"));
+
+      if (has1 && has2 && hasX) { list = g; break; }
+    }
+
+    if (!list.length) return { "1": null, "X": null, "2": null };
 
     const out = { "1": null, "X": null, "2": null };
 
     for (const o of list) {
       const label = String(o?.name ?? "").trim().toUpperCase(); // "1","X","2"
-      const code  = String(o?.code ?? "").trim();
+      const code  = String(o?.code ?? "").trim().toUpperCase();
       const price = Number(String(o?.price).replace(",", "."));
       if (!Number.isFinite(price)) continue;
 
-      if (label === "1") out["1"] = price;
-      else if (label === "2") out["2"] = price;
-      else if (label === "X" || code === "0") out["X"] = price;
+      if (label === "1" || code === "1") out["1"] = price;
+      else if (label === "2" || code === "2") out["2"] = price;
+      else if (label === "X" || code === "0" || code === "X" || label.includes("EMPATE")) out["X"] = price;
     }
 
     return out;
@@ -220,6 +254,8 @@ html,body{
     try{
       const base = bar.dataset.endpointBase;
       const eventId = bar.dataset.eventId;
+      if (!eventId) return; // segurança extra
+
       const url = base + encodeURIComponent(eventId);
 
       const res = await fetch(url, { cache: "no-store", headers: { "accept": "application/json" } });
@@ -272,7 +308,7 @@ html,body{
   mo.observe(bar, { attributes: true });
 
   update();
-  setInterval(update, 5000);
+  setInterval(update, 1000);
 })();
 </script>
 
